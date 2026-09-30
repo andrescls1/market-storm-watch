@@ -32,6 +32,16 @@ def load_shiller(path=DATA / "shiller_sp500.csv") -> pd.DataFrame:
     # Extend CPI and the 10-yr rate past where the Shiller mirror stops
     # (Sep 2023) using the same underlying series (CPI-U NSA, GS10),
     # ratio-linked at the splice point so there is no jump.
+    # Shiller's own current file (fetched daily) fills earnings, dividends,
+    # CPI and prices that the mirror has not caught up with yet.
+    ie_path = DATA / "shiller_ie.csv"
+    if ie_path.exists():
+        ie = pd.read_csv(ie_path, parse_dates=["date"]).set_index("date")
+        ie = ie[~ie.index.duplicated()]
+        df = df.reindex(df.index.union(ie.index))
+        for c in ["price", "div", "eps", "cpi"]:
+            df[c] = df[c].fillna(ie[c].reindex(df.index).replace(0.0, np.nan))
+
     cpi_path, rate_path = DATA / "cpi_us.csv", DATA / "us10y_monthly.csv"
     if cpi_path.exists():
         c = pd.read_csv(cpi_path, parse_dates=["Date"]).set_index("Date")["Index"]
@@ -93,6 +103,47 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     f["calm_years"] = np.log1p(np.array(months_since) / 12)
 
     f["price"] = price
+    return f
+
+
+CREDIT_LAG = 9   # months after the quarter's start date before BIS credit data is public
+
+
+def _fred_monthly(sid, index):
+    p = DATA / "fred" / f"{sid}.csv"
+    if not p.exists():
+        return pd.Series(np.nan, index=index)
+    s = pd.read_csv(p, parse_dates=["date"]).set_index("date")["value"]
+    s = s.resample("MS").mean()                      # daily/weekly -> monthly average
+    return s.reindex(index)
+
+
+def add_macro(f: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
+    """Version 2 nodes: credit fuel, credit-spread stress and the yield curve.
+    Returns a copy of f with the new columns (NaN where the source is missing)."""
+    f = f.copy()
+    idx = f.index
+    baa, aaa = _fred_monthly("BAA", idx), _fred_monthly("AAA", idx)
+    tb3, gs10 = _fred_monthly("TB3MS", idx), _fred_monthly("GS10", idx)
+    long_rate = gs10.fillna(df["long_rate"])         # Shiller long rate before 1953
+
+    # STRESS: default spread (Baa - Aaa), and its 6-month widening
+    f["default_spread"] = baa - aaa
+    f["spread_chg_6"] = f["default_spread"].diff(6)
+
+    # POLICY: yield curve (10-yr minus 3-month); negative = inverted
+    f["term_spread"] = long_rate - tb3
+
+    # FUEL: 3-year change in private credit / GDP (percentage points),
+    # quarterly BIS data shifted by its publication lag, then carried monthly
+    cr = DATA / "fred" / "QUSPAM770A.csv"
+    if cr.exists():
+        c = pd.read_csv(cr, parse_dates=["date"]).set_index("date")["value"]
+        c.index = c.index + pd.DateOffset(months=CREDIT_LAG)
+        c = c.reindex(idx.union(c.index)).ffill(limit=3).reindex(idx)
+        f["credit_3y"] = c - c.shift(36)
+    else:
+        f["credit_3y"] = np.nan
     return f
 
 

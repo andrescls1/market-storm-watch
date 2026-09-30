@@ -18,19 +18,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from features import load_shiller, build_features, bear_markets
+from features import load_shiller, build_features, add_macro, bear_markets
 
 ROOT = Path(__file__).parent
 FRED = ROOT / "data" / "fred"
 OUT = ROOT / "docs" / "data"
 
-# Shown on the dashboard until a version passes out-of-sample validation
-MODEL_STATUS = {
-    "version": "1",
-    "validated": False,
-    "note": "Version 1 did not beat the historical base rate out of sample. "
-            "Treat readings as conditions, not forecasts, until version 2 is validated.",
-}
+# Headline watch model (version 2). It was one of six version 2 specs fixed
+# before testing; it is the one that beat the base rate, which is why the
+# status stays "provisional" rather than "validated".
+HEADLINE = "B|v2 core, heavy regularization"
+ALT = "B|v2 core: credit, curve, valuation, boom"
 
 # Stress gauge components: series id, label, transform (higher = more stress)
 STRESS = [
@@ -111,12 +109,24 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     (ROOT / "outputs").mkdir(exist_ok=True)
     subprocess.run([sys.executable, "watch_model.py"], check=True, cwd=ROOT)
+    subprocess.run([sys.executable, "watch_model_v2.py"], check=True, cwd=ROOT)
 
     wp = pd.read_csv(ROOT / "outputs/watch_predictions.csv", index_col=0, parse_dates=True)
-    wr = json.load(open(ROOT / "outputs/watch_results.json"), parse_constant=lambda c: float("nan"))
+    vp = pd.read_csv(ROOT / "outputs/watch_v2_predictions.csv", index_col=0, parse_dates=True)
+    vr = json.load(open(ROOT / "outputs/watch_v2_results.json"), parse_constant=lambda c: float("nan"))
+    sc = vr["results"]["B"]["scores"]
+    h = sc[HEADLINE.split("|")[1]]
+    status = {
+        "version": "2",
+        "validated": False,
+        "note": (f"Version 2 (credit, yield curve, valuation, price boom) beat the historical base rate "
+                 f"out of sample {vr['results']['B']['start'][:4]}–{vr['results']['B']['end'][:4]}: "
+                 f"Brier skill {h['brier_skill']:+.2f}, AUC {h['auc']:.2f}. That test holds only five bear "
+                 f"markets, and this model was the best of six tested, so treat it as provisional."),
+    }
 
     raw = load_shiller()
-    f = build_features(raw)
+    f = add_macro(build_features(raw), raw)
     peaks = bear_markets(raw["price"])
 
     # Driver readings: latest value and percentile vs full history
@@ -124,7 +134,9 @@ def main():
     for col, label in [("log_cape", "CAPE (valuation)"), ("boom_3y", "3-yr real price boom"),
                        ("trend_gap", "Trend gap (momentum)"), ("rate_chg_12", "Rate change 12m"),
                        ("inflation", "Inflation"), ("calm_years", "Calm years (Minsky)"),
-                       ("vol_12", "Volatility 12m"), ("eps_growth", "Earnings growth")]:
+                       ("vol_12", "Volatility 12m"), ("eps_growth", "Earnings growth"),
+                       ("credit_3y", "Credit/GDP 3-yr change"), ("term_spread", "Yield curve (10y-3m)"),
+                       ("default_spread", "Baa-Aaa credit spread")]:
         s = f[col].dropna()
         drivers.append(dict(id=col, label=label, asof=s.index[-1].strftime("%Y-%m"),
                             value=float(s.iloc[-1]), percentile=float((s < s.iloc[-1]).mean())))
@@ -132,7 +144,8 @@ def main():
     gauge, comps, stress_meta = stress_gauge()
 
     # Latest readings
-    ne = wp["No-earnings variant"].dropna()
+    ne = vp[HEADLINE].dropna()
+    alt = vp[ALT].dropna()
     cm = wp["Causal watch model"].dropna()
     base = wp["Base rate"].dropna()
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -140,8 +153,9 @@ def main():
         run_date=today,
         watch_prob=float(ne.iloc[-1]) if len(ne) else None,
         watch_asof=ne.index[-1].strftime("%Y-%m") if len(ne) else None,
-        full_model_prob=float(cm.iloc[-1]) if len(cm) else None,
-        full_model_asof=cm.index[-1].strftime("%Y-%m") if len(cm) else None,
+        alt_prob=float(alt.iloc[-1]) if len(alt) else None,
+        v1_prob=float(cm.iloc[-1]) if len(cm) else None,
+        v1_asof=cm.index[-1].strftime("%Y-%m") if len(cm) else None,
         base_rate=float(base.iloc[-1]) if len(base) else None,
         stress=float(gauge.iloc[-1]) if gauge is not None else None,
         stress_asof=str(gauge.index[-1].date()) if gauge is not None else None,
@@ -158,8 +172,8 @@ def main():
     hist.to_csv(hist_path, index=False)
 
     # Monthly watch series since 1925 (backtest + live)
-    w = wp.loc["1925":]
-    watch_monthly = [[t.strftime("%Y-%m"), r["Causal watch model"], r["No-earnings variant"],
+    w = wp.loc["1925":].join(vp[[HEADLINE]], how="left")
+    watch_monthly = [[t.strftime("%Y-%m"), r[HEADLINE], r["Causal watch model"],
                       r["Base rate"], r["price"]] for t, r in w.iterrows()]
 
     # Stress: weekly points for the long history, daily for the last 2 years
@@ -173,7 +187,7 @@ def main():
 
     dash = dict(
         generated_utc=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-        status=MODEL_STATUS,
+        status=status,
         latest=snapshot,
         drivers=drivers,
         stress_components=stress_meta,
@@ -182,7 +196,8 @@ def main():
         history=hist.to_dict(orient="records"),
         peaks=[dict(peak=r.peak.strftime("%Y-%m"), trough=r.trough.strftime("%Y-%m"),
                     decline=round(float(r.decline), 3)) for r in peaks.itertuples()],
-        backtest=wr.get("scores"),
+        backtest=dict(window=[vr["results"]["B"]["start"][:7], vr["results"]["B"]["end"][:7]],
+                      scores=[dict(model=k, **v) for k, v in sc.items()]),
     )
     (OUT / "dashboard.json").write_text(json.dumps(clean(dash), allow_nan=False))
     print("snapshot:", json.dumps(clean(snapshot)))

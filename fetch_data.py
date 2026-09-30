@@ -12,6 +12,7 @@ the last saved copy stays in place, so one bad day never breaks the run.
 """
 import io
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -77,6 +78,36 @@ def fetch_fred(series_id: str) -> pd.DataFrame:
     return parse_fred_csv(r.text)
 
 
+def fetch_shiller_ie() -> pd.DataFrame:
+    """Robert Shiller's ie_data.xls (current earnings, used for CAPE).
+    The download link changes with each update, so read it off the home page."""
+    page = requests.get("https://shillerdata.com/", headers=HEADERS, timeout=(10, 30)).text
+    m = re.search(r'href="([^"]*ie_data\.xls[^"]*)"', page)
+    if not m:
+        raise RuntimeError("ie_data.xls link not found on shillerdata.com")
+    url = m.group(1).replace("&amp;", "&")
+    if url.startswith("//"):
+        url = "https:" + url
+    r = requests.get(url, headers=HEADERS, timeout=(10, 60))
+    r.raise_for_status()
+    return parse_shiller_ie(pd.read_excel(io.BytesIO(r.content), sheet_name="Data", header=None))
+
+
+def parse_shiller_ie(raw: pd.DataFrame) -> pd.DataFrame:
+    """Find the header row ('Date', 'P', 'D', 'E', 'CPI', ...) and return
+    date, price, div, eps, cpi. Shiller writes October as 1871.1, so the
+    date is read with two decimals."""
+    hdr = raw.index[raw.iloc[:, 0].astype(str).str.strip() == "Date"][0]
+    body = raw.iloc[hdr + 1:, :5].copy()
+    body.columns = ["date", "price", "div", "eps", "cpi"]
+    body = body[pd.to_numeric(body["date"], errors="coerce").notna()]
+    d = pd.to_numeric(body["date"]).map(lambda x: f"{x:.2f}")
+    body["date"] = pd.to_datetime(d.str[:4] + "-" + d.str[5:7] + "-01")
+    for c in ["price", "div", "eps", "cpi"]:
+        body[c] = pd.to_numeric(body[c], errors="coerce")
+    return body.dropna(subset=["price"]).reset_index(drop=True)
+
+
 def main() -> int:
     FRED_DIR.mkdir(parents=True, exist_ok=True)
     failures = []
@@ -90,6 +121,15 @@ def main() -> int:
         except Exception as e:  # keep the last good copy
             failures.append(name)
             print(f"FAIL {name}: {e}")
+
+    try:
+        ie = fetch_shiller_ie()
+        ie.to_csv(DATA / "shiller_ie.csv", index=False)
+        last_e = ie.dropna(subset=["eps"]).date.max().date()
+        print(f"ok   shiller_ie.csv  prices to {ie.date.max().date()}, earnings to {last_e}")
+    except Exception as e:  # keep the last good copy
+        failures.append("shiller_ie")
+        print(f"FAIL shiller_ie: {type(e).__name__}: {str(e)[:150]}")
 
     has_key = bool(os.environ.get("FRED_API_KEY"))
     print(f"FRED access: {'API key' if has_key else 'public CSV (no FRED_API_KEY secret set)'}")
