@@ -34,7 +34,8 @@ MODEL_STATUS = {
 
 # Stress gauge components: series id, label, transform (higher = more stress)
 STRESS = [
-    ("BAMLH0A0HYM2", "High-yield spread", lambda s: s),
+    # High-yield spread left out: FRED now only publishes its last 3 years,
+    # too short to rank against history. The Baa spread covers credit stress.
     ("BAA10Y", "Baa corporate spread", lambda s: s),
     ("VIXCLS", "VIX (volatility)", lambda s: s),
     ("T10Y3M", "Yield-curve inversion", lambda s: -s),
