@@ -1,0 +1,312 @@
+<title>Market Storm Watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single research-notebook column; charts and tables run full column width */
+:root{
+  --bg:#f6f7f8; --panel:#ffffff; --ink:#15202b; --ink-2:#4a5664; --ink-3:#7b8794;
+  --rule:#dde2e7; --shade:#e6e9ee; --accent:#1f5f99;
+  --s1:#2a78d6; --s2:#eb6834; --watch:#b7791f; --good:#2f7d4a; --bad:#b83a3a;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171d; --panel:#1a2129; --ink:#e8edf2; --ink-2:#b3bdc8; --ink-3:#8290a0;
+  --rule:#2c3643; --shade:#232c37; --accent:#7fb2e5;
+  --s1:#3987e5; --s2:#d95926; --watch:#e0a84a; --good:#5fb37b; --bad:#e36d6d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171d; --panel:#1a2129; --ink:#e8edf2; --ink-2:#b3bdc8; --ink-3:#8290a0;
+  --rule:#2c3643; --shade:#232c37; --accent:#7fb2e5;
+  --s1:#3987e5; --s2:#d95926; --watch:#e0a84a; --good:#5fb37b; --bad:#e36d6d; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--body)}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:20px;padding-block:32px 64px}
+header{display:grid;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:28px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+h1{font:700 clamp(40px,7vw,64px)/.95 var(--display);letter-spacing:.01em;margin:0;text-wrap:balance}
+h2{font:600 28px/1.1 var(--display);margin:0 0 6px;letter-spacing:.01em;text-wrap:balance}
+h3{font:600 15px/1.3 var(--body);margin:0 0 4px}
+.lede{max-width:68ch;color:var(--ink-2);margin:4px 0 0;font-size:16px}
+section{margin-top:48px;display:grid;gap:14px}
+section>p,.note{max-width:70ch;color:var(--ink-2);margin:0}
+.findings{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:4px}
+.finding{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:14px 16px;min-width:0}
+.finding .tag{font:500 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;display:inline-flex;gap:6px;align-items:center;margin-bottom:8px}
+.finding p{margin:0;color:var(--ink-2);font-size:14px}
+.tag.bad{color:var(--bad)} .tag.good{color:var(--good)} .tag.watch{color:var(--watch)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:14px 12px 10px;min-width:0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--ink-2);padding:0 6px 6px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:18px;height:3px;border-radius:2px;display:inline-block}
+.sw.box{height:12px;width:14px;border-radius:2px}
+svg text{fill:var(--ink-3);font:11px var(--mono)}
+.tip{position:fixed;pointer-events:none;background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:8px 10px;font:12px/1.5 var(--mono);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.12);z-index:5}
+.scroll{overflow-x:auto;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th{font:500 11px/1.3 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--ink-3);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+td.num,th.num{text-align:right;font-family:var(--mono);font-size:12.5px}
+td.mono{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.ok{color:var(--good)} .no{color:var(--bad)} .na{color:var(--ink-3)}
+tr.hl td{background:var(--shade)}
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(120px,210px) 1fr 58px;gap:12px;align-items:center;font-size:13.5px}
+.track{height:10px;background:var(--shade);border-radius:5px;position:relative}
+.fill{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--s1)}
+.fill.hot{background:var(--watch)}
+.bar .pct{font-family:var(--mono);font-size:12.5px;text-align:right}
+.bar small{display:block;color:var(--ink-3);font-size:11.5px}
+.steps{display:grid;gap:10px;counter-reset:s}
+.step{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
+.step b.n{font:700 22px/1 var(--display);color:var(--accent)}
+.step p{margin:2px 0 0;color:var(--ink-2);font-size:14px}
+code{font-family:var(--mono);font-size:12.5px;background:var(--shade);padding:1px 5px;border-radius:3px}
+pre.mermaid{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:12px;overflow-x:auto;margin:0}
+footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);color:var(--ink-3);font-size:12.5px}
+@media (max-width:560px){.bar{grid-template-columns:1fr 50px}.bar .track{grid-column:1/-1;order:3}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Causal crash-risk model · version 1 · data through Aug 2026</div>
+  <h1>Market Storm Watch</h1>
+  <p class="lede">A first working version of the causal early-warning model: a theory-built causal graph, tested with PCMCI across three eras, feeding a walk-forward "watch" model for the chance of a 20%+ fall in the S&amp;P 500 within 24 months. Built on 155 years of Shiller data. The credit and stress layers come in Step 2.</p>
+</header>
+
+<section>
+  <h2>What version 1 found</h2>
+  <div class="findings">
+    <div class="finding"><div class="tag bad"><i class="dot"></i>Timing: no skill</div><p>Out of sample (1925–2023), no version of the multivariate model beat the plain historical base rate. It raised a watch before 1929, 1968, 1973, 2000, 2007 and 2021, but also through the calm 1950s and 2010s.</p></div>
+    <div class="finding"><div class="tag watch"><i class="dot"></i>Valuation: weak signal</div><p>CAPE on its own ranked risk best (AUC 0.61, where 0.5 is a coin flip), but its probabilities were still no better calibrated than the base rate.</p></div>
+    <div class="finding"><div class="tag good"><i class="dot"></i>Stable mechanism</div><p>Inflation leading to rising yields held in every era. Most links into market declines appeared in one era only, which is exactly the regime-dependence problem the book warns about.</p></div>
+    <div class="finding"><div class="tag watch"><i class="dot"></i>Minsky shows up</div><p>Since 1990, long calm stretches were followed by deeper drawdowns about 9 months later, the only era where the "stability breeds instability" link appeared.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Price, bear markets and the model's warnings</h2>
+  <p>Top: S&amp;P 500 on a log scale, with bear markets (20%+ falls on monthly averages) shaded. Bottom: the out-of-sample probability of a 20%+ fall within 24 months, from the causal model and from CAPE alone. Months already inside a bear market are skipped, because the model predicts the onset of trouble.</p>
+  <div class="panel">
+    <div class="legend">
+      <span><i class="sw" style="background:var(--ink)"></i>S&amp;P 500 (log)</span>
+      <span><i class="sw box" style="background:var(--shade)"></i>Bear market</span>
+      <span><i class="sw" style="background:var(--s1)"></i>Causal watch model</span>
+      <span><i class="sw" style="background:var(--s2)"></i>CAPE only</span>
+      <span><i class="sw" style="background:var(--ink-3)"></i>Base rate</span>
+      <span><i class="sw" style="background:var(--watch)"></i>Watch threshold 35%</span>
+    </div>
+    <div id="chart"></div>
+  </div>
+</section>
+
+<section>
+  <h2>Scorecard</h2>
+  <p>All models scored on the same 977 months (1925–2023, not already in a bear market). AUC measures ranking: 0.5 is a coin flip, 1.0 is perfect. Brier skill compares the probabilities with the base rate: above zero is better, below zero is worse.</p>
+  <div class="panel scroll"><table id="scores"></table></div>
+  <h3 style="margin-top:10px">Robustness: simpler and more regularized versions</h3>
+  <p class="note">All variants are reported, not just the best one, because picking a winner after seeing the test results would overfit. None has a positive Brier skill.</p>
+  <div class="panel scroll"><table id="robust"></table></div>
+</section>
+
+<section>
+  <h2>The causal graph, tested</h2>
+  <p>The theory graph was drawn from economic mechanisms first, then checked with PCMCI (a causal discovery algorithm for time series) on quarterly data at lags of up to two years. A cell shows the strongest lagged partial correlation found, with its lag in quarters. ✓ means the sign matches theory, ✗ means it is reversed, and a dash means no significant link (p &lt; 0.01).</p>
+  <pre class="mermaid">
+flowchart LR
+  subgraph Slow["Slow drivers"]
+    INF[Inflation]
+    RL[Rate level]
+    CALM[Calm years]
+  end
+  subgraph Policy["Policy trigger"]
+    RC[Rate change 12m]
+  end
+  subgraph Fuel["Valuation and fuel"]
+    CAPE[CAPE]
+    BOOM[3-yr price boom]
+    EPS[Earnings growth]
+  end
+  subgraph Behav["Behavior and stress"]
+    TG[Trend gap]
+    VOL[Volatility]
+  end
+  DD((Market drawdown))
+  INF ==>|stable all eras| RC
+  INF --> CAPE
+  RL --> CAPE
+  RC --> CAPE
+  RC --> DD
+  EPS --> CAPE
+  EPS --> DD
+  CAPE --> DD
+  BOOM --> DD
+  TG --> DD
+  CALM --> BOOM
+  CALM --> VOL
+  VOL --> DD
+  DD -.feedback.-> VOL
+  DD -.anticipates.-> EPS
+  </pre>
+  <div class="panel scroll"><table id="graph"></table></div>
+</section>
+
+<section>
+  <h2>Episode check</h2>
+  <p>What the causal model said in the 24 months before each bear-market peak since 1926. "Lead" is how many months before the peak the probability first crossed the 35% watch line. Read this table together with the scorecard: the model was often high before crashes, but it was also high in many periods that had no crash.</p>
+  <div class="panel scroll"><table id="episodes"></table></div>
+</section>
+
+<section>
+  <h2>Current conditions</h2>
+  <p>Where each driver sits today against its full history since 1871 (percentile). This is a reading of conditions, not a forecast. The public earnings series stops in 2023, so CAPE and earnings growth are stale until you add Shiller's current file in Step 2.</p>
+  <div class="panel"><div class="bars" id="bars"></div></div>
+  <p class="note">The no-earnings variant reads <b id="ne"></b>, about the same as the base rate of <b id="br"></b>. Given the scorecard above, neither number should be treated as a real warning.</p>
+</section>
+
+<section>
+  <h2>Step 2: add the missing layers</h2>
+  <p>Version 1 lacks the two layers that research finds most predictive: credit and leverage (the "moisture") and stress transmission (credit spreads and the yield curve). My workspace can't reach these sites, so these downloads are the next step for you. For each FRED series, open the page, choose Download, then CSV.</p>
+  <div class="panel scroll"><table>
+    <thead><tr><th>Layer</th><th>Series</th><th>Source</th><th>Coverage</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Fuel: credit</td><td class="mono">QUSPAM770A</td><td>FRED (BIS data)</td><td>1952+</td><td>Private credit as a share of GDP; the credit-boom half of the crisis predictor</td></tr>
+      <tr><td>Stress: spreads</td><td class="mono">BAA, AAA</td><td>FRED</td><td>1919+</td><td>Corporate credit spreads, the best early transmission signal</td></tr>
+      <tr><td>Policy: yield curve</td><td class="mono">TB3MS, GS10</td><td>FRED</td><td>1934+</td><td>Yield-curve inversion, the classic recession trigger</td></tr>
+      <tr><td>Policy: rates</td><td class="mono">FEDFUNDS</td><td>FRED</td><td>1954+</td><td>The direct policy lever, used for do() interventions later</td></tr>
+      <tr><td>Stress: conditions</td><td class="mono">NFCI</td><td>FRED</td><td>1971+</td><td>Chicago Fed financial conditions index</td></tr>
+      <tr><td>Valuation: update</td><td class="mono">ie_data.xls</td><td>shillerdata.com</td><td>1871+</td><td>Current earnings, so CAPE runs to 2026</td></tr>
+      <tr><td>More crises</td><td class="mono">JSTdatasetR6.xlsx</td><td>macrohistory.net</td><td>1870+, 18 countries</td><td>Raises the sample from about a dozen US crises to dozens</td></tr>
+    </tbody></table></div>
+  <p class="note">Attach the files in this chat and I'll plug them in, re-run causal discovery with credit and spreads in the graph, and rescore the model against the version 1 baseline above.</p>
+</section>
+
+<section>
+  <h2>The roadmap</h2>
+  <div class="steps">
+    <div class="step"><b class="n">1</b><div><h3>Baseline graph and watch model (this page)</h3><p>Valuation, rates, earnings, momentum, volatility and Minsky layers, with walk-forward scoring.</p></div></div>
+    <div class="step"><b class="n">2</b><div><h3>Credit and stress layers</h3><p>Add credit growth, spreads and the yield curve, and re-test the graph. The watch model is expected to improve most here, since credit booms have the strongest record in the research.</p></div></div>
+    <div class="step"><b class="n">3</b><div><h3>Multi-country panel</h3><p>Train on 18 countries so the model learns from dozens of crises, and test which links are invariant across countries.</p></div></div>
+    <div class="step"><b class="n">4</b><div><h3>Regimes and the warning model</h3><p>Add a latent sentiment factor, regime switching, and a short-horizon warning model built on spreads and volatility.</p></div></div>
+    <div class="step"><b class="n">5</b><div><h3>Interventions</h3><p>Fit the structural equations and ask do() questions, such as the effect on crash risk of a 100 bp rate hike.</p></div></div>
+  </div>
+</section>
+
+<footer>Data: Robert Shiller monthly S&amp;P 500 dataset (via github.com/datasets/s-and-p-500), CPI-U and 10-year Treasury yields (github.com/datasets). Method follows the structure of Fabozzi &amp; Focardi, <i>Causal Modeling for Finance and Business</i> (MIT Press). Monthly-average prices soften sharp drops: the 2020 fall reads as about 19% and does not count as a bear market here. Research tool, not investment advice.</footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const D = __DATA__;
+const $ = s => document.querySelector(s);
+const pct = v => v==null ? "–" : Math.round(v*100)+"%";
+
+// ---------- chart ----------
+function drawChart(){
+  const host = $("#chart"); host.innerHTML = "";
+  const W = Math.max(host.clientWidth, 320), padL = 46, padR = 12;
+  const H1 = 200, H2 = 170, gap = 26, top = 8, bottom = 22, H = top+H1+gap+H2+bottom;
+  const rows = D.series;
+  const t = rows.map(r => { const [y,m] = r[0].split("-").map(Number); return y + (m-1)/12; });
+  const x0 = t[0], x1 = t[t.length-1];
+  const X = v => padL + (v-x0)/(x1-x0)*(W-padL-padR);
+  const lp = rows.map(r => r[1] ? Math.log10(r[1]) : null);
+  const lmin = 0.7, lmax = 4.0;
+  const Y1 = v => top + (1-(v-lmin)/(lmax-lmin))*H1;
+  const y2top = top+H1+gap;
+  const Y2 = v => y2top + (1-v)*H2;
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns,"svg");
+  svg.setAttribute("width",W); svg.setAttribute("height",H); svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  svg.setAttribute("role","img"); svg.setAttribute("aria-label","S&P 500 with bear markets, and model probabilities over time");
+  const el = (n,a) => { const e=document.createElementNS(ns,n); for(const k in a) e.setAttribute(k,a[k]); svg.appendChild(e); return e; };
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  // bear shading
+  const toT = s => { const [y,m]=s.split("-").map(Number); return y+(m-1)/12; };
+  D.watch.peaks.filter(p => toT(p.trough.slice(0,7)) >= x0).forEach(p => {
+    const a = Math.max(toT(p.peak.slice(0,7)), x0), b = toT(p.trough.slice(0,7));
+    [[top,H1],[y2top,H2]].forEach(([yy,hh]) => el("rect",{x:X(a),y:yy,width:Math.max(X(b)-X(a),2),height:hh,fill:css("--shade")}));
+  });
+  // grids
+  [1,10,100,1000,10000].forEach(v => { const y=Y1(Math.log10(v)); if(y<top-1||y>top+H1+1) return;
+    el("line",{x1:padL,x2:W-padR,y1:y,y2:y,stroke:css("--rule"),"stroke-width":1});
+    const tx=el("text",{x:padL-6,y:y+4,"text-anchor":"end"}); tx.textContent=v>=1000?(v/1000)+"k":v; });
+  [0,.25,.5,.75,1].forEach(v => { const y=Y2(v);
+    el("line",{x1:padL,x2:W-padR,y1:y,y2:y,stroke:css("--rule"),"stroke-width":1});
+    const tx=el("text",{x:padL-6,y:y+4,"text-anchor":"end"}); tx.textContent=Math.round(v*100)+"%"; });
+  const step = W < 600 ? 20 : 10;
+  for(let yr=1930; yr<=2020; yr+=step){ const tx=el("text",{x:X(yr),y:H-6,"text-anchor":"middle"}); tx.textContent=yr; }
+  // watch threshold
+  el("line",{x1:padL,x2:W-padR,y1:Y2(.35),y2:Y2(.35),stroke:css("--watch"),"stroke-width":1.5,"stroke-dasharray":"5 4"});
+  // lines
+  const path = (idx, yf, color, w, dash) => {
+    let d="", on=false;
+    rows.forEach((r,i)=>{ const v = idx===1 ? lp[i] : r[idx];
+      if(v==null){ on=false; return; }
+      d += (on?"L":"M")+X(t[i]).toFixed(1)+" "+yf(v).toFixed(1)+" "; on=true; });
+    const a={d,fill:"none",stroke:color,"stroke-width":w,"stroke-linejoin":"round"}; if(dash) a["stroke-dasharray"]=dash;
+    el("path",a);
+  };
+  path(1,Y1,css("--ink"),1.6);
+  path(4,Y2,css("--ink-3"),1.5,"2 3");
+  path(3,Y2,css("--s2"),1.6);
+  path(2,Y2,css("--s1"),2);
+  const lab=(txt,y)=>{const e=el("text",{x:padL+4,y}); e.textContent=txt; e.style.fill=css("--ink-2");};
+  lab("S&P 500, log scale",top+12); lab("P(20%+ fall within 24 months)",y2top+12);
+  // hover
+  const cross = el("line",{y1:top,y2:y2top+H2,stroke:css("--ink-3"),"stroke-width":1,opacity:0});
+  const dot1 = el("circle",{r:4,fill:css("--s1"),stroke:css("--panel"),"stroke-width":2,opacity:0});
+  const hit = el("rect",{x:padL,y:top,width:W-padL-padR,height:H1+gap+H2,fill:"transparent"});
+  const tip = $("#tip");
+  hit.addEventListener("mousemove", e => {
+    const rect = svg.getBoundingClientRect(); const mx = e.clientX-rect.left;
+    const tv = x0 + (mx-padL)/(W-padL-padR)*(x1-x0);
+    let i = Math.round((tv-x0)*12); i = Math.max(0,Math.min(rows.length-1,i));
+    const r = rows[i]; const xx = X(t[i]);
+    cross.setAttribute("x1",xx); cross.setAttribute("x2",xx); cross.setAttribute("opacity",1);
+    if(r[2]!=null){ dot1.setAttribute("cx",xx); dot1.setAttribute("cy",Y2(r[2])); dot1.setAttribute("opacity",1);} else dot1.setAttribute("opacity",0);
+    tip.hidden=false;
+    tip.innerHTML = `<b>${r[0]}</b><br>S&amp;P 500: ${r[1]?r[1].toLocaleString():"–"}<br>Causal model: ${pct(r[2])}<br>CAPE only: ${pct(r[3])}<br>Base rate: ${pct(r[4])}`+(r[2]==null&&r[5]!=null?`<br>No-earnings: ${pct(r[5])}`:"")+(r[2]==null&&r[4]!=null&&r[0]<"2024"?"<br><i>in bear market</i>":"");
+    const tx = Math.min(e.clientX+14, window.innerWidth-190); tip.style.left=tx+"px"; tip.style.top=(e.clientY+14)+"px";
+  });
+  hit.addEventListener("mouseleave",()=>{tip.hidden=true;cross.setAttribute("opacity",0);dot1.setAttribute("opacity",0);});
+  host.appendChild(svg);
+}
+
+// ---------- tables ----------
+const sk = v => { const c = v>0.005?"ok":v<-0.005?"no":"na"; return `<span class="${c}">${v>0?"+":""}${v.toFixed(2)}</span>`; };
+$("#scores").innerHTML = `<thead><tr><th>Model</th><th class="num">AUC</th><th class="num">Brier skill</th><th class="num">Time on watch</th><th class="num">Crash rate when on watch</th><th class="num">Crash rate otherwise</th></tr></thead><tbody>` +
+  D.watch.scores.map(s => `<tr${s.index==="Causal watch model"?' class="hl"':''}><td>${s.index}</td><td class="num">${s.auc.toFixed(2)}</td><td class="num">${sk(s.brier_skill_vs_base)}</td><td class="num">${s.index==="Base rate"?"–":pct(s.watch_share)}</td><td class="num">${s.hit_rate_when_watch==null?"–":pct(s.hit_rate_when_watch)}</td><td class="num">${pct(s.hit_rate_otherwise)}</td></tr>`).join("") + "</tbody>";
+
+$("#robust").innerHTML = `<thead><tr><th>Variant</th><th>Test period starts</th><th class="num">AUC</th><th class="num">Brier skill</th></tr></thead><tbody>` +
+  D.robust.map(r => `<tr><td>${({"full C=0.5":"All 9 drivers, light regularization","full C=0.02":"All 9 drivers, heavy regularization","no rate_level C=0.02":"Drop rate level (not stationary), heavy regularization","theory composite (1 weight)":"Theory-signed average of drivers (1 fitted weight)","CAPE only":"CAPE only"})[r.variant]||r.variant}</td><td class="mono">${r.oos_start.slice(0,4)}</td><td class="num">${r.auc.toFixed(2)}</td><td class="num">${sk(r.brier_skill)}</td></tr>`).join("") + "</tbody>";
+
+const nice = {inflation:"Inflation",rate_chg_12:"Rate change 12m",log_cape:"CAPE",rate_level:"Rate level",eps_growth:"Earnings growth",drawdown_now:"Market drawdown",boom_3y:"3-yr price boom",trend_gap:"Trend gap",calm_years:"Calm years",vol_12:"Volatility"};
+const cell = v => v==="—" ? `<span class="na">—</span>` : v.startsWith("✓") ? `<span class="ok">${v}</span>` : `<span class="no">${v.replace("sign ","")}</span>`;
+$("#graph").innerHTML = `<thead><tr><th>Link</th><th>Type</th><th>Full sample</th><th>1881–1945</th><th>1946–1989</th><th>1990–2023</th></tr></thead><tbody>` +
+  D.graph.map(g => `<tr><td>${nice[g.cause]} → ${nice[g.effect]} <span class="na">(${g.expected>0?"+":"−"})</span></td><td>${g.type}</td><td class="mono">${cell(g["Full sample"])}</td><td class="mono">${cell(g["1881-1945"])}</td><td class="mono">${cell(g["1946-1989"])}</td><td class="mono">${cell(g["1990-2023"])}</td></tr>`).join("") + "</tbody>";
+
+$("#episodes").innerHTML = `<thead><tr><th>Peak</th><th class="num">Decline</th><th class="num">Avg prob. 24m before</th><th class="num">Max prob.</th><th class="num">Prob. at peak</th><th class="num">Watch lead</th></tr></thead><tbody>` +
+  D.watch.episodes.map(e => `<tr><td class="mono">${e.peak}</td><td class="num">${e.decline}</td><td class="num">${pct(e.avg_p_24m_before)}</td><td class="num">${pct(e.max_p)}</td><td class="num">${pct(e.p_at_peak)}</td><td class="num">${e.watch_lead_months==null?'<span class="no">missed</span>':e.watch_lead_months+" mo"}</td></tr>`).join("") + "</tbody>";
+
+// ---------- current conditions ----------
+const bars = [
+  ["CAPE (valuation)", "Dec 2023, stale", 0.95, "32.5"],
+  ["3-yr real price boom", "Aug 2026", 0.91, "+59% real"],
+  ["Trend gap (momentum)", "Aug 2026", 0.80, "+9.2%"],
+  ["Rate change 12m", "Jul 2026", 0.74, "+0.21 pp"],
+  ["Inflation", "Aug 2026", 0.65, "3.3%"],
+  ["Calm years (Minsky)", "Aug 2026", 0.62, "3.2 yrs"],
+  ["Volatility 12m", "Aug 2026", 0.32, "8.8%"],
+  ["Earnings growth", "Dec 2023, stale", 0.27, "−8% real"],
+];
+$("#bars").innerHTML = bars.map(([n,d,p,v]) => `<div class="bar"><div>${n}<small>${v} · ${d}</small></div><div class="track"><div class="fill${p>=0.8?" hot":""}" style="width:${p*100}%"></div></div><div class="pct">${Math.round(p*100)}th</div></div>`).join("");
+$("#ne").textContent = pct(D.watch.latest["No-earnings variant"][1]) + " (Jul 2026)";
+$("#br").textContent = pct(D.watch.latest["Base rate"][1]);
+
+drawChart();
+let rt; addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(drawChart,150);});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",drawChart);
+new MutationObserver(drawChart).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+</script>
