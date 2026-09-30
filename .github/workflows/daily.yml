@@ -30,7 +30,7 @@ jobs:
 
       - name: Fetch data
         env:
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}   # optional; public CSV used if empty
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY || vars.FRED_API_KEY }}   # secret preferred; variable accepted as fallback
         timeout-minutes: 8
         run: python -u fetch_data.py
 
