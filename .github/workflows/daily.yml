@@ -31,10 +31,12 @@ jobs:
       - name: Fetch data
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}   # optional; public CSV used if empty
-        run: python fetch_data.py
+        timeout-minutes: 8
+        run: python -u fetch_data.py
 
       - name: Run model and update dashboard data
-        run: python daily_run.py
+        timeout-minutes: 8
+        run: python -u daily_run.py
 
       - name: Commit results
         run: |

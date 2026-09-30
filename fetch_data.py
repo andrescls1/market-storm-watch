@@ -65,14 +65,14 @@ def fetch_fred(series_id: str) -> pd.DataFrame:
     if key:
         r = requests.get("https://api.stlouisfed.org/fred/series/observations",
                          params=dict(series_id=series_id, api_key=key, file_type="json"),
-                         headers=HEADERS, timeout=60)
+                         headers=HEADERS, timeout=(10, 45))
         r.raise_for_status()
         obs = pd.DataFrame(r.json()["observations"])[["date", "value"]]
         obs["value"] = pd.to_numeric(obs["value"], errors="coerce")
         obs["date"] = pd.to_datetime(obs["date"])
         return obs.dropna()
     r = requests.get("https://fred.stlouisfed.org/graph/fredgraph.csv",
-                     params={"id": series_id}, headers=HEADERS, timeout=60)
+                     params={"id": series_id}, headers=HEADERS, timeout=(10, 30))
     r.raise_for_status()
     return parse_fred_csv(r.text)
 
@@ -91,18 +91,30 @@ def main() -> int:
             failures.append(name)
             print(f"FAIL {name}: {e}")
 
-    for sid in FRED_SERIES:
-        for attempt in range(3):
+    has_key = bool(os.environ.get("FRED_API_KEY"))
+    print(f"FRED access: {'API key' if has_key else 'public CSV (no FRED_API_KEY secret set)'}")
+    fred_ok = 0
+    for i, sid in enumerate(FRED_SERIES):
+        # Without a key, FRED's public CSV often refuses cloud servers. If the
+        # first two series both fail, stop instead of timing out on all of them.
+        if not has_key and i >= 2 and fred_ok == 0:
+            print("Public FRED download is not responding from this server; skipping the rest.")
+            print("Fix: add a free FRED API key as the FRED_API_KEY repository secret.")
+            failures += [s for s in list(FRED_SERIES)[i:]]
+            break
+        for attempt in range(2):
             try:
                 df = fetch_fred(sid)
                 df.to_csv(FRED_DIR / f"{sid}.csv", index=False)
                 print(f"ok   {sid:14s} {df.date.min().date()} -> {df.date.max().date()}  n={len(df)}")
+                fred_ok += 1
                 break
             except Exception as e:
-                if attempt == 2:
+                if attempt == 1:
                     failures.append(sid)
-                    print(f"FAIL {sid}: {e}")
-                time.sleep(3 * (attempt + 1))
+                    print(f"FAIL {sid}: {type(e).__name__}: {str(e)[:150]}")
+                else:
+                    time.sleep(3)
 
     # FRED CPI / 10-yr are fresher than the mirrors: overwrite in the mirror format
     cpi, gs10 = FRED_DIR / "CPIAUCNS.csv", FRED_DIR / "GS10.csv"
