@@ -44,7 +44,9 @@ def load_shiller(path=DATA / "shiller_sp500.csv") -> pd.DataFrame:
     cpi_path, rate_path = DATA / "cpi_us.csv", DATA / "us10y_monthly.csv"
     if cpi_path.exists():
         c = pd.read_csv(cpi_path, parse_dates=["Date"]).set_index("Date")["Index"]
-        last = df["cpi"].last_valid_index()
+        # link the two CPI series at the last month both report
+        common = df["cpi"].dropna().index.intersection(c.dropna().index)
+        last = common[-1]
         c = c * (df.loc[last, "cpi"] / c.loc[last])
         df["cpi"] = df["cpi"].fillna(c.reindex(df.index))
     if rate_path.exists():
