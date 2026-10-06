@@ -36,11 +36,10 @@ def load_shiller(path=DATA / "shiller_sp500.csv") -> pd.DataFrame:
     # CPI and prices that the mirror has not caught up with yet.
     ie_path = DATA / "shiller_ie.csv"
     if ie_path.exists():
-        ie = pd.read_csv(ie_path, parse_dates=["date"]).set_index("date")
-        ie = ie[~ie.index.duplicated()]
-        df = df.reindex(df.index.union(ie.index))
-        for c in ["price", "div", "eps", "cpi"]:
-            df[c] = df[c].fillna(ie[c].reindex(df.index).replace(0.0, np.nan))
+        try:
+            df = _merge_shiller_ie(df, ie_path)
+        except Exception as e:   # a bad download must never stop the daily run
+            print(f"WARNING: skipped shiller_ie.csv ({type(e).__name__}: {e})")
 
     cpi_path, rate_path = DATA / "cpi_us.csv", DATA / "us10y_monthly.csv"
     if cpi_path.exists():
@@ -52,6 +51,27 @@ def load_shiller(path=DATA / "shiller_sp500.csv") -> pd.DataFrame:
         r = pd.read_csv(rate_path, parse_dates=["Date"]).set_index("Date")["Rate"]
         df["long_rate"] = df["long_rate"].fillna(r.reindex(df.index))
     return df
+
+
+def _merge_shiller_ie(df: pd.DataFrame, path) -> pd.DataFrame:
+    ie = pd.read_csv(path)
+    ie["date"] = pd.to_datetime(ie["date"], format="%Y-%m-%d", errors="coerce")
+    ie = ie.dropna(subset=["date"]).set_index("date").sort_index()
+    ie = ie[~ie.index.duplicated()]
+    for c in ["price", "div", "eps", "cpi"]:
+        ie[c] = pd.to_numeric(ie[c], errors="coerce").replace(0.0, np.nan)
+    # Sanity checks: monthly dates in a sensible range, and prices that agree
+    # with the mirror where both exist. Otherwise refuse the file.
+    ie = ie[(ie.index >= "1871-01-01") & (ie.index <= pd.Timestamp.today() + pd.DateOffset(months=1))]
+    if len(ie) < 1000:
+        raise ValueError(f"only {len(ie)} usable rows")
+    both = pd.concat([df["price"], ie["price"]], axis=1, keys=["a", "b"]).dropna()
+    if len(both) < 1000 or ((both.b / both.a - 1).abs() > 0.05).mean() > 0.02:
+        raise ValueError("prices do not match the mirror file")
+    out = df.reindex(df.index.union(ie.index))
+    for c in ["price", "div", "eps", "cpi"]:
+        out[c] = out[c].fillna(ie[c].reindex(out.index))
+    return out
 
 
 def build_features(df: pd.DataFrame) -> pd.DataFrame:
