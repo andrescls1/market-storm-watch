@@ -1,58 +1,83 @@
-Traceback (most recent call last):
-  File "pandas/_libs/index.pyx", line 660, in pandas._libs.index.DatetimeEngine.get_loc
-  File "pandas/_libs/hashtable_class_helper.pxi", line 2761, in pandas._libs.hashtable.Int64HashTable.get_item
-  File "pandas/_libs/hashtable_class_helper.pxi", line 2785, in pandas._libs.hashtable.Int64HashTable.get_item
-KeyError: 1790812800000000
+Out-of-sample 1925-01-01 to 2024-10-01 (months not already in a bear market)
+                         n    auc  brier  watch_share  hit_rate_when_watch  hit_rate_otherwise  brier_skill_vs_base
+Base rate            987.0  0.532  0.141        0.000                  NaN               0.158                0.000
+Causal watch model   987.0  0.461  0.222        0.422                0.134               0.175               -0.572
+No-earnings variant  987.0  0.492  0.205        0.277                0.114               0.175               -0.454
+CAPE only            987.0  0.617  0.152        0.207                0.201               0.147               -0.073
 
-During handling of the above exception, another exception occurred:
+Calibration — causal watch model:
+              n  predicted  actual
+bin                               
+(0.0, 0.1]  237      0.038   0.186
+(0.1, 0.2]  117      0.144   0.085
+(0.2, 0.3]  134      0.252   0.157
+(0.3, 0.4]  163      0.350   0.233
+(0.4, 0.5]  120      0.441   0.225
+(0.5, 1.0]  216      0.653   0.074
 
-Traceback (most recent call last):
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3641, in get_loc
-    return self._engine.get_loc(casted_key)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "pandas/_libs/index.pyx", line 628, in pandas._libs.index.DatetimeEngine.get_loc
-  File "pandas/_libs/index.pyx", line 662, in pandas._libs.index.DatetimeEngine.get_loc
-KeyError: Timestamp('2026-10-01 00:00:00')
+Bear markets — what the causal watch model said in the 24 months before each peak:
+   peak decline  avg_p_24m_before  max_p  p_at_peak  watch_lead_months
+1929-09    -34%              0.32   0.76       0.33               12.0
+1930-04    -81%              0.39   0.76       0.02               19.0
+1932-09    -25%              0.09   0.11       0.11                NaN
+1934-02    -26%              0.08   0.35       0.09                NaN
+1937-02    -45%              0.03   0.09       0.08                NaN
+1938-11    -40%              0.04   0.08       0.00                NaN
+1946-05    -25%              0.19   0.39       0.26               24.0
+1961-12    -22%              0.31   0.76       0.33               24.0
+1968-12    -29%              0.50   0.61       0.44               24.0
+1973-01    -43%              0.33   0.42       0.34               13.0
+1987-08    -27%              0.02   0.08       0.08                NaN
+2000-08    -44%              0.42   0.65       0.45               15.0
+2007-10    -51%              0.38   0.56       0.30               24.0
+2021-12    -20%              0.40   0.54       0.44               21.0
 
-The above exception was the direct cause of the following exception:
+Latest-fit standardized coefficients (log-odds per 1 std):
+trend_gap     -0.307
+calm_years    -0.290
+rate_level    -0.239
+eps_growth     0.092
+boom_3y        0.143
+inflation      0.226
+rate_chg_12    0.279
+log_cape       0.328
+vol_12         0.342
 
-Traceback (most recent call last):
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pandas/core/indexes/datetimes.py", line 996, in get_loc
-    return Index.get_loc(self, key)
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3648, in get_loc
-    raise KeyError(key) from err
-KeyError: Timestamp('2026-10-01 00:00:00')
+Latest readings: {'Base rate': ('2026-10', 0.195), 'Causal watch model': ('2026-09', 0.368), 'No-earnings variant': ('2026-09', 0.224), 'CAPE only': ('2026-10', 0.276)}
 
-The above exception was the direct cause of the following exception:
+WINDOW A: 1950-01-01 to 2024-10-01, n=804 months
+                          n    auc  brier_skill  watch_share  hit_when_watch  hit_otherwise
+Base rate             804.0  0.355        0.000        0.000             NaN          0.108
+v1 causal model       804.0  0.547       -0.736        0.491           0.116          0.100
+v2 + spreads & curve  804.0  0.459       -1.030        0.423           0.103          0.112
+Curve only            804.0  0.382        0.041        0.022           0.000          0.111
+CAPE only             804.0  0.584       -0.135        0.205           0.127          0.103
 
-Traceback (most recent call last):
-  File "/home/runner/work/market-storm-watch/market-storm-watch/watch_model.py", line 103, in <module>
-    raw = load_shiller()
-          ^^^^^^^^^^^^^^
-  File "/home/runner/work/market-storm-watch/market-storm-watch/features.py", line 48, in load_shiller
-    c = c * (df.loc[last, "cpi"] / c.loc[last])
-                                   ~~~~~^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pandas/core/indexing.py", line 1207, in __getitem__
-    return self._getitem_axis(maybe_callable, axis=axis)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pandas/core/indexing.py", line 1449, in _getitem_axis
-    return self._get_label(key, axis=axis)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pandas/core/indexing.py", line 1399, in _get_label
-    return self.obj.xs(label, axis=axis)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pandas/core/generic.py", line 4241, in xs
-    loc = index.get_loc(key)
-          ^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/pandas/core/indexes/datetimes.py", line 998, in get_loc
-    raise KeyError(orig_key) from err
-KeyError: Timestamp('2026-10-01 00:00:00')
-Traceback (most recent call last):
-  File "/home/runner/work/market-storm-watch/market-storm-watch/daily_run.py", line 207, in <module>
-    main()
-  File "/home/runner/work/market-storm-watch/market-storm-watch/daily_run.py", line 111, in main
-    subprocess.run([sys.executable, "watch_model.py"], check=True, cwd=ROOT)
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/subprocess.py", line 571, in run
-    raise CalledProcessError(retcode, process.args,
-subprocess.CalledProcessError: Command '['/opt/hostedtoolcache/Python/3.11.16/x64/bin/python', 'watch_model.py']' returned non-zero exit status 1.
+WINDOW B: 1970-01-01 to 2024-10-01, n=574 months
+                                             n    auc  brier_skill  watch_share  hit_when_watch  hit_otherwise
+Base rate                                574.0  0.377        0.000        0.000             NaN          0.113
+v1 causal model                          574.0  0.603       -0.484        0.408           0.124          0.106
+v2 + spreads & curve                     574.0  0.555       -0.889        0.427           0.135          0.097
+v2 + spreads, curve & credit             574.0  0.587       -0.947        0.383           0.150          0.090
+v2 core: credit, curve, valuation, boom  574.0  0.681        0.033        0.211           0.231          0.082
+v2 core, heavy regularization            574.0  0.709        0.153        0.049           0.464          0.095
+Curve only                               574.0  0.335       -0.024        0.019           0.000          0.115
+Credit only                              574.0  0.647       -0.009        0.057           0.000          0.120
+CAPE only                                574.0  0.649       -0.108        0.122           0.243          0.095
+
+Episodes, v2 full (window B):
+    peak decline  avg_p_24m_before  max_p  p_at_peak  watch_lead_months
+1973-01    -43%              0.00   0.02       0.01                NaN
+1987-08    -27%              0.01   0.02       0.01                NaN
+2000-08    -44%              0.90   0.97       0.94               24.0
+2007-10    -51%              0.49   0.78       0.44               24.0
+2021-12    -20%              0.41   0.85       0.85               22.0
+
+Episodes, v2 core (window B):
+    peak decline  avg_p_24m_before  max_p  p_at_peak  watch_lead_months
+1973-01    -43%              0.08   0.26       0.08                NaN
+1987-08    -27%              0.00   0.01       0.00                NaN
+2000-08    -44%              0.43   0.69       0.69               24.0
+2007-10    -51%              0.50   0.65       0.37               24.0
+2021-12    -20%              0.27   0.39       0.33               11.0
+snapshot: {"run_date": "2026-10-06", "watch_prob": 0.0248478257515931, "watch_asof": "2026-09", "alt_prob": 0.0067396277039192, "v1_prob": 0.3681576564968313, "v1_asof": "2026-09", "base_rate": 0.1953125, "stress": 0.3111659090742525, "stress_asof": "2026-10-05", "pct_BAA10Y": 0.029, "pct_VIXCLS": 0.356, "pct_T10Y3M": 0.597, "pct_NFCI": 0.451, "pct_SP500": 0.263}
