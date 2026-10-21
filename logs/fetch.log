@@ -3,18 +3,18 @@ ok   cpi_us.csv
 ok   us10y_monthly.csv
 ok   shiller_ie.csv  prices to 2026-10-01, earnings to 2026-06-01
 FRED access: API key
-ok   QUSPAM770A     1947-10-01 -> 2025-10-01  n=313
-ok   BAA            1919-01-01 -> 2026-09-01  n=1293
-ok   AAA            1919-01-01 -> 2026-09-01  n=1293
-ok   BAA10Y         1986-01-02 -> 2026-10-16  n=10198
-ok   BAMLH0A0HYM2   2023-10-23 -> 2026-10-19  n=784
-ok   VIXCLS         1990-01-02 -> 2026-10-19  n=9298
-ok   NFCI           1971-01-08 -> 2026-10-09  n=2910
-ok   TB3MS          1934-01-01 -> 2026-09-01  n=1113
-ok   GS10           1953-04-01 -> 2026-09-01  n=882
-ok   T10Y3M         1982-01-04 -> 2026-10-19  n=11201
-ok   FEDFUNDS       1954-07-01 -> 2026-09-01  n=867
-ok   CPIAUCNS       1913-01-01 -> 2026-09-01  n=1364
-ok   SP500          2016-10-20 -> 2026-10-19  n=2512
+FAIL QUSPAM770A: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL BAA: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL AAA: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL BAA10Y: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL BAMLH0A0HYM2: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL VIXCLS: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL NFCI: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL TB3MS: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL GS10: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL T10Y3M: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL FEDFUNDS: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL CPIAUCNS: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAIL SP500: JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 
-0 failures: []
+13 failures: ['QUSPAM770A', 'BAA', 'AAA', 'BAA10Y', 'BAMLH0A0HYM2', 'VIXCLS', 'NFCI', 'TB3MS', 'GS10', 'T10Y3M', 'FEDFUNDS', 'CPIAUCNS', 'SP500']
