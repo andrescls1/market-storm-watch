@@ -1,16 +1,16 @@
-Out-of-sample 1925-01-01 to 2024-10-01 (months not already in a bear market)
+Out-of-sample 1925-01-01 to 2024-11-01 (months not already in a bear market)
                          n    auc  brier  watch_share  hit_rate_when_watch  hit_rate_otherwise  brier_skill_vs_base
-Base rate            987.0  0.532  0.141        0.000                  NaN               0.158                0.000
-Causal watch model   987.0  0.461  0.222        0.422                0.134               0.175               -0.572
-No-earnings variant  987.0  0.492  0.205        0.277                0.114               0.175               -0.454
-CAPE only            987.0  0.617  0.152        0.207                0.201               0.147               -0.073
+Base rate            988.0  0.533  0.141        0.000                  NaN               0.158                0.000
+Causal watch model   988.0  0.462  0.222        0.422                0.134               0.175               -0.572
+No-earnings variant  988.0  0.493  0.205        0.276                0.114               0.175               -0.454
+CAPE only            988.0  0.618  0.151        0.206                0.201               0.147               -0.073
 
 Calibration — causal watch model:
               n  predicted  actual
 bin                               
 (0.0, 0.1]  237      0.038   0.186
 (0.1, 0.2]  117      0.144   0.085
-(0.2, 0.3]  134      0.252   0.157
+(0.2, 0.3]  135      0.252   0.156
 (0.3, 0.4]  163      0.350   0.233
 (0.4, 0.5]  120      0.441   0.225
 (0.5, 1.0]  216      0.653   0.074
@@ -43,27 +43,27 @@ rate_chg_12    0.279
 log_cape       0.328
 vol_12         0.342
 
-Latest readings: {'Base rate': ('2026-10', 0.195), 'Causal watch model': ('2026-10', 0.394), 'No-earnings variant': ('2026-10', 0.244), 'CAPE only': ('2026-10', 0.276)}
+Latest readings: {'Base rate': ('2026-11', 0.195), 'Causal watch model': ('2026-10', 0.392), 'No-earnings variant': ('2026-10', 0.248), 'CAPE only': ('2026-11', 0.274)}
 
-WINDOW A: 1950-01-01 to 2024-10-01, n=804 months
+WINDOW A: 1950-01-01 to 2024-11-01, n=805 months
                           n    auc  brier_skill  watch_share  hit_when_watch  hit_otherwise
-Base rate             804.0  0.355        0.000        0.000             NaN          0.108
-v1 causal model       804.0  0.547       -0.736        0.491           0.116          0.100
-v2 + spreads & curve  804.0  0.459       -1.030        0.423           0.103          0.112
-Curve only            804.0  0.382        0.041        0.022           0.000          0.111
-CAPE only             804.0  0.584       -0.135        0.205           0.127          0.103
+Base rate             805.0  0.356        0.000        0.000             NaN          0.108
+v1 causal model       805.0  0.547       -0.736        0.491           0.116          0.100
+v2 + spreads & curve  805.0  0.459       -1.031        0.424           0.103          0.112
+Curve only            805.0  0.382        0.041        0.022           0.000          0.111
+CAPE only             805.0  0.584       -0.136        0.205           0.127          0.103
 
-WINDOW B: 1970-01-01 to 2024-10-01, n=574 months
+WINDOW B: 1970-01-01 to 2024-11-01, n=575 months
                                              n    auc  brier_skill  watch_share  hit_when_watch  hit_otherwise
-Base rate                                574.0  0.377        0.000        0.000             NaN          0.113
-v1 causal model                          574.0  0.603       -0.484        0.408           0.124          0.106
-v2 + spreads & curve                     574.0  0.555       -0.889        0.427           0.135          0.097
-v2 + spreads, curve & credit             574.0  0.587       -0.947        0.383           0.150          0.090
-v2 core: credit, curve, valuation, boom  574.0  0.681        0.033        0.211           0.231          0.082
-v2 core, heavy regularization            574.0  0.709        0.153        0.049           0.464          0.095
-Curve only                               574.0  0.335       -0.024        0.019           0.000          0.115
-Credit only                              574.0  0.647       -0.009        0.057           0.000          0.120
-CAPE only                                574.0  0.649       -0.108        0.122           0.243          0.095
+Base rate                                575.0  0.379        0.000        0.000             NaN          0.113
+v1 causal model                          575.0  0.603       -0.484        0.407           0.124          0.106
+v2 + spreads & curve                     575.0  0.554       -0.890        0.428           0.134          0.097
+v2 + spreads, curve & credit             575.0  0.588       -0.946        0.383           0.150          0.090
+v2 core: credit, curve, valuation, boom  575.0  0.682        0.033        0.209           0.233          0.081
+v2 core, heavy regularization            575.0  0.709        0.154        0.049           0.464          0.095
+Curve only                               575.0  0.335       -0.024        0.019           0.000          0.115
+Credit only                              575.0  0.648       -0.008        0.057           0.000          0.120
+CAPE only                                575.0  0.649       -0.109        0.122           0.243          0.095
 
 Episodes, v2 full (window B):
     peak decline  avg_p_24m_before  max_p  p_at_peak  watch_lead_months
@@ -71,7 +71,7 @@ Episodes, v2 full (window B):
 1987-08    -27%              0.01   0.02       0.01                NaN
 2000-08    -44%              0.90   0.97       0.94               24.0
 2007-10    -51%              0.49   0.78       0.44               24.0
-2021-12    -20%              0.41   0.85       0.85               22.0
+2021-12    -20%              0.41   0.84       0.84               22.0
 
 Episodes, v2 core (window B):
     peak decline  avg_p_24m_before  max_p  p_at_peak  watch_lead_months
@@ -80,4 +80,4 @@ Episodes, v2 core (window B):
 2000-08    -44%              0.43   0.69       0.69               24.0
 2007-10    -51%              0.50   0.65       0.37               24.0
 2021-12    -20%              0.27   0.39       0.33               11.0
-snapshot: {"run_date": "2026-11-13", "watch_prob": 0.02840388450730923, "watch_asof": "2026-10", "alt_prob": 0.008080797375512058, "v1_prob": 0.3939693340591151, "v1_asof": "2026-10", "base_rate": 0.1953125, "stress": 0.49856835435760993, "stress_asof": "2026-11-12", "pct_BAA10Y": 0.053, "pct_VIXCLS": 0.565, "pct_T10Y3M": 0.67, "pct_NFCI": 0.604, "pct_SP500": 0.6}
+snapshot: {"run_date": "2026-11-16", "watch_prob": 0.026546509287387294, "watch_asof": "2026-10", "alt_prob": 0.007276714075992118, "v1_prob": 0.3924107047879982, "v1_asof": "2026-10", "base_rate": 0.19517388218594747, "stress": 0.5025946800378035, "stress_asof": "2026-11-13", "pct_BAA10Y": 0.035, "pct_VIXCLS": 0.594, "pct_T10Y3M": 0.658, "pct_NFCI": 0.604, "pct_SP500": 0.622}
